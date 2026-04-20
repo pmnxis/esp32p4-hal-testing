@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: © 2026 Jinwoo Park (pmnxis@gmail.com)
+#
+# SPDX-License-Identifier: CC0-1.0
+
+[package]
+name = "esp32p4-hal-testing"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88.0"
+publish = false
+
+# Each src/bin/*.rs becomes a separate firmware binary.
+# Build: cargo +nightly build --bin test_init
+# Flash: cargo +nightly run --bin test_init (uses espflash via runner)
+# All:   cargo +nightly build (builds all binaries)
+
+[dependencies]
+esp-hal = { path = "../embedded-lib/esp-hal/esp-hal", features = ["esp32p4"] }
+esp-bootloader-esp-idf = { path = "../embedded-lib/esp-hal/esp-bootloader-esp-idf", default-features = false, features = ["esp32p4"] }
+esp-backtrace = { path = "../embedded-lib/esp-hal/esp-backtrace", features = ["esp32p4", "panic-handler", "println"] }
+esp-println = { path = "../embedded-lib/esp-hal/esp-println", default-features = false, features = ["esp32p4", "log-04", "jtag-serial", "critical-section"] }
+esp32p4 = { version = "0.2", features = ["critical-section"], git = "https://github.com/esp-rs/esp-pacs", rev = "fc3e6d4" }
+log = "0.4"
+
+[profile.dev]
+opt-level = "s"
+overflow-checks = false
+
+[profile.release]
+debug = true
+opt-level = "s"
+lto = "fat"
+codegen-units = 1

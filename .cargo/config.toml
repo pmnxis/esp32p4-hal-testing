@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: © 2026 Jinwoo Park (pmnxis@gmail.com)
+#
+# SPDX-License-Identifier: CC0-1.0
+
+[build]
+target = "riscv32imafc-unknown-none-elf"
+
+[target.riscv32imafc-unknown-none-elf]
+# espflash 4.x: USB-JTAG-Serial (built-in on P4) needs explicit --before usb-reset
+# and --no-stub (no flash stub loader needed for direct USB upload).
+runner = "espflash flash --monitor --before usb-reset --no-stub"
+rustflags = [
+    "-C", "link-arg=-Tlinkall.x",
+    "-C", "force-frame-pointers",
+]
+
+[unstable]
+build-std = ["core"]
+
+[env]
+ESP_LOG = "info"
