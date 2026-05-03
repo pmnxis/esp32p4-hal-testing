@@ -15,10 +15,10 @@ publish = false
 # All:   cargo +nightly build (builds all binaries)
 
 [dependencies]
-esp-hal = { path = "../embedded-lib/esp-hal/esp-hal", features = ["esp32p4"] }
+esp-hal = { path = "../embedded-lib/esp-hal/esp-hal", features = ["esp32p4", "unstable"] }
 esp-bootloader-esp-idf = { path = "../embedded-lib/esp-hal/esp-bootloader-esp-idf", default-features = false, features = ["esp32p4"] }
 esp-backtrace = { path = "../embedded-lib/esp-hal/esp-backtrace", features = ["esp32p4", "panic-handler", "println"] }
-esp-println = { path = "../embedded-lib/esp-hal/esp-println", default-features = false, features = ["esp32p4", "log-04", "jtag-serial", "critical-section"] }
+esp-println = { path = "../embedded-lib/esp-hal/esp-println", default-features = false, features = ["esp32p4", "log-04", "uart", "critical-section"] }
 esp-rom-sys = { path = "../embedded-lib/esp-hal/esp-rom-sys", features = ["esp32p4"] }
 esp32p4 = { version = "0.2", features = ["critical-section"], git = "https://github.com/esp-rs/esp-pacs", rev = "fc3e6d4" }
 log = "0.4"
@@ -26,6 +26,9 @@ log = "0.4"
 # no_std reference implementations for CPU-vs-ROM comparison
 crc-any = { version = "2.5", default-features = false }
 md-5 = { version = "0.10", default-features = false }
+
+# stack-allocated string formatting (used by test_psram_shmoo for grid output)
+heapless = { version = "0.8", default-features = false }
 
 [profile.dev]
 opt-level = "s"
