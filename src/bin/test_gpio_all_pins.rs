@@ -9,6 +9,15 @@
 //! Catches: dead pins, stuck pins, bank 0/1 boundary (GPIO31->32).
 //!
 //! Also tests LP GPIO pullup/pulldown on pins 0-5, 12-23.
+//!
+//! WARNING (bench-specific): per `.investigation/la_channel_map.csv`
+//! GPIO20<->GPIO22 and GPIO48<->GPIO53 are physically shorted on this
+//! bench. Driving both ends of a short to opposite levels causes
+//! push-pull output fight + transient over-current. This bin currently
+//! sweeps each pin one at a time and reads back, so it's safe (only one
+//! end is ever driven at a moment), but if you parallelize it, ensure
+//! the two pins of each shorted pair stay in lock-step or are both
+//! configured as input.
 
 #![no_std]
 #![no_main]

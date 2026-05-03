@@ -168,15 +168,9 @@ fn main() -> ! {
     info!(" test_psram_prbs_fill — 16 MB PRBS-31 fill + verify");
     info!("================================================");
 
-    info!("[1/5] Init PSRAM at 250 MHz (MPLL=500, div=2) — non-default top speed");
-    // ram_frequency=Mhz250 selects the 250-MHz timing row (MR0.RL=6,
-    // MR4.WL=3, RD dummy=34). core_clock=Mhz500 is the matching MPLL
-    // override (the table default for Mhz250 is also 500 MHz; this
-    // exercises the explicit override path).
+    info!("[1/5] Init PSRAM at 200 MHz (IDF default)");
     let cfg = PsramConfig {
         size: PsramSize::AutoDetect,
-        ram_frequency: SpiRamFreq::Mhz250,
-        core_clock: Some(MpllFreq::Mhz500),
         ..PsramConfig::default()
     };
     let psram = Psram::new(peripherals.PSRAM, cfg);
