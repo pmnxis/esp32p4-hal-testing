@@ -70,11 +70,8 @@ const IO_MUX_BASE: u32 = 0x500E_1000;
 
 const TX_PIN: u32 = 6;
 
-/// Microseconds per bit at 115200 baud. 1e6 / 115200 = 8.6805 us; we
-/// use the integer-rounded value.
-const BIT_US: u64 = 9; // 9 us is +3.7% off nominal -- still inside UART receiver tolerance (~5%)
-// Refinement: use a fractional-bit emitter that alternates 8 us / 9 us
-// to land closer to 8.681. See `delay_bit()` below.
+/// Nanoseconds per bit at 115200 baud. 1e9 / 115200 = 8681 ns.
+const BIT_NS: u64 = 8681;
 
 const ITERATIONS: u32 = 5;
 const PAYLOAD: &[u8] = b"Hello P4 UART1!\r\n";
@@ -117,38 +114,35 @@ fn busy_until(target: Instant) {
     }
 }
 
-/// Sleep one UART bit time (8.681 us) using a fractional approach: alternate
-/// 8 / 9 / 9 us so the average over 3 calls = 8.667 us, very close to the
-/// nominal 8.681 us. Worst-case absolute error per bit: 0.32 us; over 10
-/// bits per byte: 3.2 us == 0.37 bits == well within the standard 5%
-/// receiver tolerance.
-fn delay_bit(counter: &mut u32) {
-    let now = Instant::now();
-    let dur_us: u64 = match *counter % 3 {
-        0 => 8,
-        _ => 9,
-    };
-    *counter = counter.wrapping_add(1);
-    busy_until(now + Duration::from_micros(dur_us));
+/// Round-to-nearest microsecond conversion of `bit_idx * BIT_NS`.
+/// Each bit's absolute boundary is within 0.5 us of ideal; receiver
+/// samples mid-bit so this is well within UART's 5% tolerance.
+#[inline(always)]
+fn bit_target_us(bit_idx: u64) -> u64 {
+    (bit_idx * BIT_NS + 500) / 1000
 }
 
-fn send_byte(b: u8, ctr: &mut u32) {
+/// Schedule the next transition at an absolute time relative to the
+/// byte-start anchor `t0`. Cumulative drift is therefore zero; each
+/// edge lands within 0.5 us of an integer multiple of BIT_NS from t0.
+fn send_byte(b: u8) {
+    let t0 = Instant::now();
     // START bit
     pin_set(TX_PIN, false);
-    delay_bit(ctr);
+    busy_until(t0 + Duration::from_micros(bit_target_us(1)));
     // 8 data bits LSB-first
     for i in 0..8 {
         pin_set(TX_PIN, (b >> i) & 1 != 0);
-        delay_bit(ctr);
+        busy_until(t0 + Duration::from_micros(bit_target_us(i as u64 + 2)));
     }
-    // STOP bit (HIGH)
+    // STOP bit (HIGH).
     pin_set(TX_PIN, true);
-    delay_bit(ctr);
+    busy_until(t0 + Duration::from_micros(bit_target_us(10)));
 }
 
-fn send_str(s: &[u8], ctr: &mut u32) {
+fn send_str(s: &[u8]) {
     for &b in s {
-        send_byte(b, ctr);
+        send_byte(b);
     }
 }
 
@@ -173,9 +167,8 @@ fn main() -> ! {
     esp32p4_hal_testing::delay_ms(5);
 
     info!("=== test_uart1_wire_w_logicpro: STAGE_BEGIN ===");
-    let mut ctr: u32 = 0;
     for i in 0..ITERATIONS {
-        send_str(PAYLOAD, &mut ctr);
+        send_str(PAYLOAD);
         info!("  iter {}: payload sent ({} bytes)", i, PAYLOAD.len());
         // Inter-frame gap so the LA shows clearly separated transmissions.
         esp32p4_hal_testing::delay_ms(200);
